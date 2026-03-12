@@ -1,160 +1,252 @@
 "use client";
-import React,{useState,useRef,useEffect} from "react";
-import { Loader2 } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
 import Inputbar from "./Inputbar";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Particles, { initParticlesEngine } from "@tsparticles/react";
+import { loadSlim } from "@tsparticles/slim";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { RotateCcw } from "lucide-react";
 
-type ChatPageProps ={
-    onStart:()=>void
-};
-export default function ChatPage({onStart}:ChatPageProps){
-    const [messages, setMessages] = useState([] as {sender:string, text:string}[]);
-    const bottomRef=useRef<HTMLDivElement| null>(null)
-    const [hasStartedMessages,sethasStartedMessages]=useState(false)
-    const [conversationId,setconversationId]=useState<string | null>(null);
-    const[isLoading,setisLoading]=useState(false)
+// ── Constants ────────────────────────────────────────────────────────────────
 
-    async function handleUserMessage(message:string)
-    {
-        //For redundancy
-        if(!message.trim()){
-            return
-        }
-        console.log("User message received:", message);
-        if(!hasStartedMessages)
-        {
-            sethasStartedMessages(true)
-            onStart();
-        }
-        const Newmessages={sender:"user" ,text:message}
-        setMessages(prevMessages => [...prevMessages, Newmessages]);
-        try{
-        setisLoading(true)
+type ChatPageProps = { onStart: () => void };
+type Message = { sender: string; text: string };
 
-        const response=await fetch(
-           `${process.env.NEXT_PUBLIC_API_URL}/chat`,
-           {
-            method: "POST",
-            headers: {
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                message:message,
-                conversation_id: conversationId
-            }),
+const SUGGESTED = [
+  "What are the hostel fees?",
+  "CGPA requirement for PhD?",
+  "B.Tech IT course outcomes",
+  "Academic regulations for arrears",
+];
 
-           },
-        );
+const makeStarOptions = (count: number, speed: number, linkOpacity: number) => ({
+  background: { color: { value: "transparent" } },
+  particles: {
+    number: { value: count },
+    color: { value: ["#a5f3fc", "#60a5fa", "#bae6fd", "#ffffff"] },
+    size: { value: { min: 0.6, max: 2.5 } },
+    move: { enable: true, speed, random: true },
+    opacity: { value: 0.5, animation: { enable: true, speed: 0.8, minimumValue: 0.1 } },
+    links: { enable: true, distance: 120, color: "#67e8f9", opacity: linkOpacity, width: 0.7 },
+  },
+  interactivity: {
+    events: { onHover: { enable: true, mode: "grab" as const } },
+    modes: { grab: { distance: 180, links: { opacity: linkOpacity * 3.5 } } },
+  },
+  detectRetina: true,
+});
 
-        const data= await response.json()
-        setconversationId(data.conversation_id);
+// Reuse the same config object, just different density/speed for screensaver
+const STAR_OPTIONS = makeStarOptions(130, 0.18, 0.1);
+const SCREENSAVER_OPTIONS = makeStarOptions(280, 0.4, 0.18);
 
-        setMessages(prev=>[...prev,{sender:"bot",text:data.reply}])
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-    } catch (error) {
-        setMessages(prev1 =>[...prev1,{
-            sender:"bot",
-            text:"Having trouble responding.Try Again Later"
-        }])
+function TypingDots() {
+  return (
+    <div className="flex justify-start pl-2">
+      <div className="flex items-center gap-1.5 px-5 py-4 bg-zinc-900/70 border border-white/8 rounded-3xl rounded-tl-sm">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-cyan-400/70"
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({ msg }: { msg: Message }) {
+  const isUser = msg.sender === "user";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+    >
+      <div className={`px-5 py-3.5 rounded-3xl max-w-[82%] text-sm leading-relaxed ${
+        isUser
+          ? "bg-gradient-to-br from-blue-500/85 to-cyan-500/75 text-white rounded-br-sm shadow-lg shadow-cyan-500/10"
+          : "bg-black/40 border border-white/8 text-white/90 rounded-bl-sm border-l-2 border-l-cyan-500/25 backdrop-blur-md"
+      }`}>
+        {isUser ? msg.text : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+              strong: ({ children }) => <strong className="text-cyan-300 font-semibold">{children}</strong>,
+              code: ({ children }) => <code className="bg-black/50 px-1.5 py-0.5 rounded text-cyan-200 text-xs">{children}</code>,
+            }}
+          >
+            {msg.text}
+          </ReactMarkdown>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function ChatPage({ onStart }: ChatPageProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
+  const [particlesReady, setParticlesReady] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // Particles engine — init once
+  useEffect(() => {
+    initParticlesEngine(async (e) => loadSlim(e)).then(() => setParticlesReady(true));
+  }, []);
+
+  // Idle detection
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const reset = () => { setIsIdle(false); clearTimeout(timer); timer = setTimeout(() => setIsIdle(true), 45000); };
+    const events = ["mousemove", "keydown", "scroll", "click", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, reset));
+    reset();
+    return () => { clearTimeout(timer); events.forEach((e) => window.removeEventListener(e, reset)); };
+  }, []);
+
+  // Auto-scroll
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, isLoading]);
+
+  async function handleUserMessage(message: string) {
+    if (!message.trim()) return;
+    if (!hasStarted) { setHasStarted(true); onStart(); }
+
+    setMessages((prev) => [...prev, { sender: "user", text: message }]);
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, conversation_id: conversationId }),
+      });
+      const data = await res.json();
+      setConversationId(data.conversation_id);
+      setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
+    } catch {
+      setMessages((prev) => [...prev, { sender: "bot", text: "Having trouble responding. Try again later." }]);
     } finally {
-        setisLoading(false)
+      setIsLoading(false);
     }
+  }
 
-    }
+  function handleNewChat() {
+    setMessages([]);
+    setConversationId(null);
+    setHasStarted(false);
+  }
 
+  return (
+    <div className="w-full max-w-3xl flex flex-col h-screen sm:h-dvh overflow-hidden pb-6 px-4 relative">
 
+      {/* Persistent star field — always behind everything */}
+      {particlesReady && (
+        <Particles id="stars" options={STAR_OPTIONS} className="fixed inset-0 -z-10 pointer-events-none" />
+      )}
 
-    useEffect(()=> {
-        if(bottomRef.current != null)
-        {
-            bottomRef.current.scrollIntoView ({
-                behavior:"smooth"
-            })
-        }
-    },[messages.length])
+      {/* ── Landing ── */}
+      <AnimatePresence>
+        {!hasStarted && (
+          <motion.div
+            key="landing"
+            exit={{ opacity: 0, y: -24 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center gap-8 text-center mt-[7vh]"
+          >
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.2 }} className="relative">
+              <div className="absolute inset-0 rounded-full bg-cyan-400/10 blur-3xl scale-150" />
+              <Image src="/vit.png" alt="VIT Logo" width={130} height={130} className="relative drop-shadow-[0_0_40px_rgba(103,232,249,0.55)]" />
+            </motion.div>
 
-    return(
-        <>
-        <div className="w-full max-w-4xl flex flex-col h-screen sm:h-dvh overflow-hidden pb-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="space-y-2">
+              <h1 className="font-[family-name:var(--font-sora)] text-7xl sm:text-8xl font-semibold tracking-[0.12em] text-white drop-shadow-[0_0_35px_rgba(103,232,249,0.45)]">
+                NOVA
+              </h1>
+              <p className="text-sm text-white/35 tracking-[0.3em] uppercase font-light">VIT Intelligence</p>
+            </motion.div>
 
-        <div className="h-16 shrink-0" />
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-base text-white/55 font-light tracking-wide">
+              Courses · Placements · Hostels · Academics
+            </motion.p>
 
-        <div className={`flex-1 flex flex-col min-h-0 justify-start`}>
-            {/*Welcome Section */}
-        {!hasStartedMessages &&(
-                <div className="flex flex-col items-center gap-6 text-center px-4 mt-[8vh]">
-                <h2 className="text-lg sm:text-2xl text-center">
-                    Ask Anything related to college
-                </h2>
-                <div className="w-full max-w-xl bg-gray-700 rounded-2xl">
-                    <Inputbar onSend={handleUserMessage} disabled={isLoading} />
-                </div>
-            </div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="w-full max-w-xl">
+              <Inputbar onSend={handleUserMessage} disabled={isLoading} />
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }} className="flex flex-wrap justify-center gap-2 max-w-xl">
+              {SUGGESTED.map((q) => (
+                <button key={q} onClick={() => handleUserMessage(q)}
+                  className="px-4 py-2 text-sm text-white/55 border border-white/10 rounded-full bg-white/4 hover:bg-cyan-500/10 hover:text-white/90 hover:border-cyan-400/40 transition-all duration-200 backdrop-blur-md">
+                  {q}
+                </button>
+              ))}
+            </motion.div>
+          </motion.div>
         )}
-        {/*Chat Section*/}
-        {hasStartedMessages && (
-        <>
-        {/* Message Area */}
-        <div className="flex-1 bg-gray-700 rounded-2xl flex flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto px-3 sm:px-4 pt-6 pb-4 space-y-3">
-        {messages.map((msg,index)=> {
-            let alignmentClass=""
-            let bubbleClass=""
-            if (msg.sender === "user") {
-                alignmentClass = "justify-end";
-                bubbleClass = "bg-blue-500 text-white";
-            } else {
-                alignmentClass = "justify-start";
-                bubbleClass = "bg-gray-300 text-black";
-            }
+      </AnimatePresence>
 
-            return (
-                <div key={index} className={`flex mb-3 ${alignmentClass}`}>
-                <div className={`px-4 py-2 rounded-xl max-w-[75%] ${bubbleClass}`}>
-                    {/*=== for strict equality and GitHub markdowns */}
-                    {msg.sender ==="bot"?(
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {msg.text}
-                        </ReactMarkdown>
-                    ):(msg.text)}
-                </div>
-                </div>
-            )
-        }
-        
-        )
+      {/* ── Idle screensaver ── */}
+      <AnimatePresence>
+        {!hasStarted && isIdle && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050508]/92 backdrop-blur-sm">
+            {particlesReady && <Particles id="screensaver" options={SCREENSAVER_OPTIONS} className="absolute inset-0" />}
+            <div className="text-center z-10 space-y-4">
+              <motion.h2
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="font-[family-name:var(--font-sora)] text-6xl font-semibold tracking-[0.18em] text-cyan-300 drop-shadow-[0_0_50px_#67e8f9]"
+              >
+                NOVA
+              </motion.h2>
+              <p className="text-white/35 tracking-[0.25em] uppercase text-xs">move your mouse to continue</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        
-        }
-        {/*Spinner loading*/}
-        { isLoading && (
-            <div className="flex justify-start px-3">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-400"/>
+      {/* ── Chat view ── */}
+      {hasStarted && (
+        <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className="flex-1 flex flex-col min-h-0 mt-2">
+          <div className="flex-1 bg-black/30 border border-white/8 rounded-3xl flex flex-col overflow-hidden backdrop-blur-xl shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/20">
+              <span className="font-[family-name:var(--font-sora)] text-xs font-medium tracking-[0.15em] text-white/40 uppercase">Conversation</span>
+              <button onClick={handleNewChat}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/35 hover:text-white/75 border border-white/8 hover:border-cyan-500/30 rounded-full transition-all duration-200 group">
+                <RotateCcw className="w-3 h-3 group-hover:rotate-180 transition-transform duration-500" />
+                New chat
+              </button>
             </div>
 
-        )
+            <div className="flex-1 min-h-0 flex flex-col overflow-y-auto px-5 pt-6 pb-4 space-y-5">
+              {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
+              {isLoading && <TypingDots />}
+              <div ref={bottomRef} />
+            </div>
 
-
-
-        }
-
-
-        <div ref={bottomRef} />
-        </div>
-        {/* Sticky Bar to keep mobile responsiveness */}
-        <div className="sticky bottom-0 border-t border-white/10 bg-gray-700 px-3 pt-2 pb-3 rounded-b-2xl">
-        <Inputbar onSend={handleUserMessage} disabled={isLoading} />
-        </div>
-        </div>
-
-
-        </>
-        )}
-
-        </div>
-        </div>
-        </>
-    )
+            <div className="border-t border-white/5 bg-black/20 px-4 pt-3 pb-4 rounded-b-3xl backdrop-blur-xl">
+              <Inputbar onSend={handleUserMessage} disabled={isLoading} />
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
 }

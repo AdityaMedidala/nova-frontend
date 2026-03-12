@@ -47,10 +47,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-body {
-  @apply bg-gradient-to-br from-purple-400 to-blue-300 min-h-screen;
-}
-
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -121,13 +117,191 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+}
+
+/* ─── Base ─────────────────────────────────────────── */
+body {
+  background: #05050a;
+  color: white;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+/* ─── Star layers (3 depths, staggered twinkle) ─────── */
+body::before,
+body::after,
+#star-layer-3 {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Layer 1 — small distant stars */
+body::before {
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 30%, rgba(165,243,252,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 75%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 50%, rgba(186,230,253,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 93% 85%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 88%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 47% 45%, rgba(165,243,252,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 63% 10%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 35%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5%  55%, rgba(186,230,253,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 92%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 76% 68%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 42%, rgba(165,243,252,0.6) 0%, transparent 100%);
+  background-size: 100% 100%;
+  animation: twinkle-a 7s ease-in-out infinite alternate;
+}
+
+/* Layer 2 — medium stars, different timing */
+body::after {
+  background-image:
+    radial-gradient(1.5px 1.5px at 8%  40%, rgba(255,255,255,0.85) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 30% 15%, rgba(186,230,253,0.9)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 52% 80%, rgba(255,255,255,0.7)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 68% 55%, rgba(165,243,252,0.85) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 25%, rgba(255,255,255,0.9)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 43% 62%, rgba(255,255,255,0.6)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 92% 70%, rgba(186,230,253,0.75) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 17% 73%, rgba(255,255,255,0.8)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 60% 5%,  rgba(165,243,252,0.7)  0%, transparent 100%),
+    radial-gradient(2px   2px   at 78% 90%, rgba(255,255,255,0.9)  0%, transparent 100%);
+  background-size: 100% 100%;
+  animation: twinkle-b 9s ease-in-out infinite alternate;
+}
+
+/* ─── Shooting stars (pure CSS) ────────────────────── */
+.shooting-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.shooting-stars span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px 1px rgba(165, 243, 252, 0.8);
+  opacity: 0;
+}
+
+/* Trail via pseudo — each span gets a long white tail via transform */
+.shooting-stars span::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(to left, rgba(255,255,255,0.8), transparent);
+}
+
+/* 8 shooting stars at different positions/delays/durations */
+.shooting-stars span:nth-child(1)  { top:  5%; left: 20%; animation: shoot 6s  4s  infinite; }
+.shooting-stars span:nth-child(2)  { top: 15%; left: 60%; animation: shoot 8s  1s  infinite; }
+.shooting-stars span:nth-child(3)  { top:  2%; left: 80%; animation: shoot 5s  7s  infinite; }
+.shooting-stars span:nth-child(4)  { top: 30%; left: 10%; animation: shoot 9s  2s  infinite; }
+.shooting-stars span:nth-child(5)  { top:  8%; left: 45%; animation: shoot 7s  11s infinite; }
+.shooting-stars span:nth-child(6)  { top: 20%; left: 70%; animation: shoot 6s  5s  infinite; }
+.shooting-stars span:nth-child(7)  { top:  1%; left: 35%; animation: shoot 10s 3s  infinite; }
+.shooting-stars span:nth-child(8)  { top: 12%; left: 90%; animation: shoot 5s  9s  infinite; }
+
+/* ─── Glisten: bright star flashes ─────────────────── */
+.glistening-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.glistening-stars span {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0;
+  box-shadow: 0 0 6px 2px rgba(165, 243, 252, 0.9);
+}
+
+.glistening-stars span::before,
+.glistening-stars span::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.6);
+  border-radius: 2px;
+}
+/* Horizontal flare */
+.glistening-stars span::before { width: 12px; height: 1px; top: 1px; left: -5px; }
+/* Vertical flare */
+.glistening-stars span::after  { width: 1px; height: 12px; top: -5px; left: 1px; }
+
+.glistening-stars span:nth-child(1)  { top: 10%; left: 22%; animation: glisten 5s  1s  infinite; }
+.glistening-stars span:nth-child(2)  { top: 35%; left: 55%; animation: glisten 7s  3s  infinite; }
+.glistening-stars span:nth-child(3)  { top: 60%; left: 78%; animation: glisten 4s  6s  infinite; }
+.glistening-stars span:nth-child(4)  { top: 80%; left: 15%; animation: glisten 6s  0s  infinite; }
+.glistening-stars span:nth-child(5)  { top: 25%; left: 88%; animation: glisten 8s  4s  infinite; }
+.glistening-stars span:nth-child(6)  { top: 50%; left: 40%; animation: glisten 5s  8s  infinite; }
+.glistening-stars span:nth-child(7)  { top: 70%; left: 65%; animation: glisten 9s  2s  infinite; }
+.glistening-stars span:nth-child(8)  { top: 15%; left: 5%;  animation: glisten 6s  10s infinite; }
+.glistening-stars span:nth-child(9)  { top: 45%; left: 95%; animation: glisten 4s  5s  infinite; }
+.glistening-stars span:nth-child(10) { top: 88%; left: 50%; animation: glisten 7s  1s  infinite; }
+
+/* ─── Keyframes ─────────────────────────────────────── */
+@keyframes twinkle-a {
+  0%   { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+@keyframes twinkle-b {
+  0%   { opacity: 0.6; }
+  100% { opacity: 0.95; }
+}
+
+@keyframes shoot {
+  0%   { transform: translateX(0)   translateY(0)   rotate(-35deg); opacity: 0; }
+  2%   { opacity: 1; }
+  15%  { transform: translateX(280px) translateY(120px) rotate(-35deg); opacity: 0; }
+  100% { transform: translateX(280px) translateY(120px) rotate(-35deg); opacity: 0; }
+}
+
+@keyframes glisten {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50%       { opacity: 1; transform: scale(1); }
+}
+
+@keyframes aurora {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ─── Aurora background ─────────────────────────────── */
+.aurora-bg {
+  background: linear-gradient(
+    135deg,
+    #050508 0%,
+    #050508 35%,
+    #0a1628 50%,
+    #061818 65%,
+    #0d0a1a 80%,
+    #050508 100%
+  );
+  background-size: 400% 400%;
+  animation: aurora 20s ease infinite;
 }
