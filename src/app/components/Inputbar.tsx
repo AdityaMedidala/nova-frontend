@@ -23,7 +23,7 @@ function Inputbar({ onSend, disabled }: InputbarProps) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="flex items-center gap-2 w-full px-4 py-2.5 bg-zinc-900/60 border border-white/10 rounded-2xl backdrop-blur-xl focus-within:border-cyan-500/30 transition-colors duration-200">
+      <div className="flex items-center gap-2 w-full px-4 py-2.5 bg-zinc-900/60 border border-white/10 shadow-[inset_0_0_15px_rgba(255,255,255,0.02)] rounded-2xl backdrop-blur-xl focus-within:border-cyan-500/30 transition-colors duration-200">
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}

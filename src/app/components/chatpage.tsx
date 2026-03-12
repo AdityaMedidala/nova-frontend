@@ -7,7 +7,8 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw } from "lucide-react";
+
+import { RotateCcw, Building, GraduationCap, BookOpen, FileText } from "lucide-react";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -15,10 +16,10 @@ type ChatPageProps = { onStart: () => void };
 type Message = { sender: string; text: string };
 
 const SUGGESTED = [
-  "What are the hostel fees?",
-  "CGPA requirement for PhD?",
-  "B.Tech IT course outcomes",
-  "Academic regulations for arrears",
+  { text: "What are the hostel fees?", icon: Building },
+  { text: "CGPA requirement for PhD?", icon: GraduationCap },
+  { text: "B.Tech IT course outcomes", icon: BookOpen },
+  { text: "Academic regulations for arrears", icon: FileText },
 ];
 
 const makeStarOptions = (count: number, speed: number, linkOpacity: number) => ({
@@ -150,13 +151,13 @@ export default function ChatPage({ onStart }: ChatPageProps) {
     setConversationId(null);
     setHasStarted(false);
   }
-
   return (
-    <div className="w-full max-w-3xl flex flex-col h-screen sm:h-dvh overflow-hidden pb-6 px-4 relative">
+    // Added relative and z-10 to the main wrapper
+    <div className="w-full max-w-3xl flex flex-col h-screen sm:h-dvh overflow-hidden pb-6 px-4 relative z-10">
 
-      {/* Persistent star field — always behind everything */}
+      {/* Persistent star field — Changed z-index from -z-10 to z-0 */}
       {particlesReady && (
-        <Particles id="stars" options={STAR_OPTIONS} className="fixed inset-0 -z-10 pointer-events-none" />
+        <Particles id="stars" options={STAR_OPTIONS} className="fixed inset-0 z-0 pointer-events-none" />
       )}
 
       {/* ── Landing ── */}
@@ -166,11 +167,26 @@ export default function ChatPage({ onStart }: ChatPageProps) {
             key="landing"
             exit={{ opacity: 0, y: -24 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col items-center gap-8 text-center mt-[7vh]"
+            // Added relative z-10 to keep it above the particles
+            className="flex flex-col items-center gap-8 text-center mt-[7vh] relative z-10"
           >
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.2 }} className="relative">
-              <div className="absolute inset-0 rounded-full bg-cyan-400/10 blur-3xl scale-150" />
-              <Image src="/vit.png" alt="VIT Logo" width={130} height={130} className="relative drop-shadow-[0_0_40px_rgba(103,232,249,0.55)]" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2 }}
+              className="relative flex items-center justify-center p-4"
+            >
+              {/* Ultra-soft, wide ambient glow - NO hard borders */}
+              <div className="absolute inset-0 rounded-full bg-cyan-400/10 blur-[50px] scale-[2.5]" />
+              <div className="absolute inset-0 rounded-full bg-blue-500/5 blur-[60px] scale-[3]" />
+
+              <Image
+                src="/vit.png"
+                alt="VIT Logo"
+                width={100}
+                height={100}
+                className="relative brightness-0 invert opacity-90 drop-shadow-[0_0_20px_rgba(103,232,249,0.6)] hover:scale-105 transition-transform duration-500"
+              />
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="space-y-2">
@@ -189,12 +205,20 @@ export default function ChatPage({ onStart }: ChatPageProps) {
             </motion.div>
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }} className="flex flex-wrap justify-center gap-2 max-w-xl">
-              {SUGGESTED.map((q) => (
-                <button key={q} onClick={() => handleUserMessage(q)}
-                  className="px-4 py-2 text-sm text-white/55 border border-white/10 rounded-full bg-white/4 hover:bg-cyan-500/10 hover:text-white/90 hover:border-cyan-400/40 transition-all duration-200 backdrop-blur-md">
-                  {q}
-                </button>
-              ))}
+              {SUGGESTED.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.text}
+                    onClick={() => handleUserMessage(item.text)}
+                    // Added flex, items-center, and gap-2 to align the icon and text
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white/55 border border-white/10 rounded-full bg-white/4 hover:bg-cyan-500/10 hover:text-white/90 hover:border-cyan-400/40 transition-all duration-200 backdrop-blur-md"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-cyan-400/60" />
+                    {item.text}
+                  </button>
+                );
+              })}
             </motion.div>
           </motion.div>
         )}
@@ -204,7 +228,7 @@ export default function ChatPage({ onStart }: ChatPageProps) {
       <AnimatePresence>
         {!hasStarted && isIdle && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050508]/92 backdrop-blur-sm">
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050508]/92 backdrop-blur-sm">
             {particlesReady && <Particles id="screensaver" options={SCREENSAVER_OPTIONS} className="absolute inset-0" />}
             <div className="text-center z-10 space-y-4">
               <motion.h2
@@ -223,7 +247,8 @@ export default function ChatPage({ onStart }: ChatPageProps) {
       {/* ── Chat view ── */}
       {hasStarted && (
         <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-          className="flex-1 flex flex-col min-h-0 mt-2">
+          // Added relative z-10 to keep chat container above particles
+          className="flex-1 flex flex-col min-h-0 mt-2 relative z-10">
           <div className="flex-1 bg-black/30 border border-white/8 rounded-3xl flex flex-col overflow-hidden backdrop-blur-xl shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/20">
@@ -248,5 +273,4 @@ export default function ChatPage({ onStart }: ChatPageProps) {
         </motion.div>
       )}
     </div>
-  );
-}
+  );}
