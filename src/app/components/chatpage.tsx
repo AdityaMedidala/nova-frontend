@@ -152,9 +152,7 @@ export default function ChatPage({ onStart }: ChatPageProps) {
     setHasStarted(false);
   }
   return (
-    // Added relative and z-10 to the main wrapper
-    <div className="w-full max-w-3xl flex flex-col h-screen sm:h-dvh overflow-hidden pb-6 px-4 relative z-10">
-
+      <div className="w-full max-w-3xl flex flex-col h-[100dvh] overflow-hidden pb-4 sm:pb-6 px-4 relative z-10">
       {/* Persistent star field — Changed z-index from -z-10 to z-0 */}
       {particlesReady && (
         <Particles id="stars" options={STAR_OPTIONS} className="fixed inset-0 z-0 pointer-events-none" />
@@ -167,8 +165,8 @@ export default function ChatPage({ onStart }: ChatPageProps) {
             key="landing"
             exit={{ opacity: 0, y: -24 }}
             transition={{ duration: 0.5 }}
-            // Added relative z-10 to keep it above the particles
-            className="flex flex-col items-center gap-8 text-center mt-[7vh] relative z-10"
+            // Added flex-1, overflow-y-auto, and hidden scrollbars so mobile users can scroll freely!
+            className="flex-1 w-full flex flex-col items-center gap-6 sm:gap-8 text-center pt-[5vh] sm:pt-[7vh] pb-12 relative z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}

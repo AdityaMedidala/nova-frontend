@@ -6,7 +6,7 @@ export default function Home() {
   const [hasStarted, setHasStarted] = useState(false);
 
   return (
-    <div className="aurora-bg flex flex-col items-center w-full h-screen overflow-hidden">
+    <div className="aurora-bg flex flex-col items-center w-full h-[100dvh] overflow-hidden">
 
       {/* Shooting stars — 8 streaks at staggered delays */}
       <div className="shooting-stars" aria-hidden="true">
