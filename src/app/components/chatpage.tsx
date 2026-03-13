@@ -13,7 +13,8 @@ import { RotateCcw, Building, GraduationCap, BookOpen, FileText } from "lucide-r
 // ── Constants ────────────────────────────────────────────────────────────────
 
 type ChatPageProps = { onStart: () => void };
-type Message = { sender: string; text: string };
+type Source = { document: string; section: string; chunk_id: string };
+type Message = { sender: string; text: string; sources?: Source[] };
 
 const SUGGESTED = [
   { text: "What are the hostel fees?", icon: Building },
@@ -77,18 +78,33 @@ function MessageBubble({ msg }: { msg: Message }) {
           : "bg-black/40 border border-white/8 text-white/90 rounded-bl-sm border-l-2 border-l-cyan-500/25 backdrop-blur-md"
       }`}>
         {isUser ? msg.text : (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
-              strong: ({ children }) => <strong className="text-cyan-300 font-semibold">{children}</strong>,
-              code: ({ children }) => <code className="bg-black/50 px-1.5 py-0.5 rounded text-cyan-200 text-xs">{children}</code>,
-            }}
-          >
-            {msg.text}
-          </ReactMarkdown>
+          <>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                strong: ({ children }) => <strong className="text-cyan-300 font-semibold">{children}</strong>,
+                code: ({ children }) => <code className="bg-black/50 px-1.5 py-0.5 rounded text-cyan-200 text-xs">{children}</code>,
+              }}
+            >
+              {msg.text}
+            </ReactMarkdown>
+            {msg.sources && msg.sources.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/8 flex flex-wrap gap-1.5">
+                {msg.sources.map((src) => (
+                  <span
+                    key={src.chunk_id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] text-cyan-400/70 border border-cyan-500/20 bg-cyan-500/5"
+                  >
+                    <span className="opacity-50">📄</span>
+                    <span>{src.document}{src.section ? ` › ${src.section}` : ""}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </motion.div>
@@ -138,7 +154,7 @@ export default function ChatPage({ onStart }: ChatPageProps) {
       });
       const data = await res.json();
       setConversationId(data.conversation_id);
-      setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
+      setMessages((prev) => [...prev, { sender: "bot", text: data.reply, sources: data.sources ?? [] }]);
     } catch {
       setMessages((prev) => [...prev, { sender: "bot", text: "Having trouble responding. Try again later." }]);
     } finally {
