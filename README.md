@@ -4,7 +4,7 @@
 
 **Stack:** Next.js 14 · TypeScript · Tailwind CSS · Framer Motion · tsParticles
 
-**Backend repo:** [nova-vit-backend](https://github.com/your-username/nova-vit-backend)
+**Backend repo:** [nova-vit-backend](https://github.com/AdityaMedidala/vit-qa-bot-backend)
 
 ---
 
