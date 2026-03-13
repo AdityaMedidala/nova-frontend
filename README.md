@@ -1,86 +1,93 @@
-# VIT Q&A Bot — Frontend
+# NOVA — Frontend
 
-A modern, responsive chat interface for a domain-specific AI assistant focused on VIT-related queries (academics, hostels, placements, policies, etc.).
+> Chat interface for NOVA, a RAG-powered AI assistant for VIT Vellore queries.
 
-Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, and **React**. Powered by a **FastAPI backend** with RAG pipeline.
+**Stack:** Next.js 14 · TypeScript · Tailwind CSS · Framer Motion · tsParticles
 
----
-
-## 🚀 Features
-
-- 💬 Clean chat-based UI
-- 📱 Fully responsive design
-- ⚡ Real-time AI responses via FastAPI
-- 🎨 Modern UI with Tailwind CSS
-- 🔄 Conversation-aware messaging
-- ⌨️ Input validation & error handling
-- 🤖 RAG pipeline integration
+**Backend repo:** [nova-vit-backend](https://github.com/your-username/nova-vit-backend)
 
 ---
 
-## 🛠 Tech Stack
+## Table of Contents
 
-### Frontend
-- **Framework:** Next.js (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **Icons:** Lucide React
-- **Fonts:** Inter, Geist
-
-### Backend
-- **Framework:** FastAPI
-- **Pipeline:** RAG (Retrieval-Augmented Generation)
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Project Structure](#project-structure)
+4. [Setup](#setup)
+5. [Environment Variables](#environment-variables)
+6. [Design Notes](#design-notes)
 
 ---
 
-## 📁 Project Structure
+## Overview
+
+NOVA's frontend is a full-screen chat UI built around a space theme — star constellations, aurora breathing background, shooting stars, and glistening cross-flare effects. All pure CSS and tsParticles, no external asset dependencies beyond the VIT logo.
+
+Connects to a FastAPI backend via `POST /chat`, handles multi-turn conversation state, and renders source citation chips below each bot reply.
+
+---
+
+## Features
+
+- **Star field** — tsParticles constellation with hover-grab interactivity, two density modes
+- **Aurora background** — breathing gradient animation (pure CSS, `oklch` color space)
+- **Shooting stars + glistening flares** — CSS keyframe animations, 8 streaks + 10 cross-flares
+- **Idle screensaver** — triggers at 45s inactivity, denser particle field with pulsing NOVA logo
+- **Source citation chips** — document + section rendered below each bot reply
+- **Markdown rendering** — `react-markdown` + `remark-gfm` for bot responses
+- **Suggested prompts** — 4 quick-start chips with Lucide icons on the landing screen
+- **Follow-up conversation** — `conversation_id` threaded across messages
+- **Smooth transitions** — Framer Motion `AnimatePresence` on landing ↔ chat view
+
+---
+
+## Project Structure
+
 ```
 src/
 ├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── page.tsx            # Home page
-│   └── globals.css         # Global styles
-├── components/
-│   ├── chatpage.tsx        # Chat interface
-│   └── Inputbar.tsx        # Message input component
-└── public/
-    └── vit.png             # Logo
+│   ├── layout.tsx          # Sora + DM Sans fonts, dark class, metadata
+│   ├── page.tsx            # Aurora bg, shooting stars, header, ChatPage mount
+│   └── globals.css         # Star layers, shooting stars, glistening, aurora keyframes
+└── components/
+    ├── chatpage.tsx        # Landing screen, chat view, idle screensaver, message logic
+    └── Inputbar.tsx        # Controlled input + send button (shadcn Input + Button)
 ```
 
 ---
 
-## ⚙️ Installation
+## Setup
 
-### 1. Clone the repository
-```bash
-git clone <your-repo-url>
-cd <project-folder>
-```
+### 1. Clone and install
 
-### 2. Install dependencies
 ```bash
+git clone https://github.com/your-username/nova-frontend
+cd nova-frontend
 npm install
 ```
 
-### 3. Set up environment variables
+### 2. Configure environment
 
-Create a `.env.local` file:
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```bash
+cp .env.example .env.local
 ```
 
-> **Note:** Update the URL to match your FastAPI backend endpoint.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-### 4. Run development server
+Update the URL to your deployed FastAPI backend when deploying.
+
+### 3. Run development server
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
----
+### 4. Build for production
 
-## 🏗️ Build for Production
 ```bash
 npm run build
 npm start
@@ -88,51 +95,43 @@ npm start
 
 ---
 
-## 🔌 Backend Setup
+## Environment Variables
 
-This frontend connects to a **FastAPI backend** with a RAG pipeline.
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | FastAPI backend base URL — no trailing slash |
 
-Make sure your backend is running at the URL specified in `.env.local`.
+---
 
-Example backend structure:
-```
-POST /chat
+## Design Notes
+
+**Fonts:** Sora (headings, NOVA logotype, tracking-widest labels) + DM Sans (body, input, chat text).
+
+**Color palette:** Near-black `#05050a` base, `cyan-400/cyan-500` accent throughout — borders, send button, source chips, typing dots, markdown `strong` highlights.
+
+**Star layers:** Three depth layers via `body::before`, `body::after`, and tsParticles. CSS layers handle the static background stars (twinkle animation). tsParticles handles the interactive constellation on top.
+
+**Screensaver:** Activates after 45s of no mouse, keyboard, scroll, click, or touch events. Resets on any of those. Uses a separate higher-density tsParticles instance (`id="screensaver"`) so it doesn't conflict with the main field (`id="stars"`).
+
+**Message bubble rendering:** User messages are plain text. Bot messages go through `react-markdown` with custom component overrides — `strong` renders cyan, `code` renders with dark background, lists get proper spacing. Source chips render below the markdown block, separated by a subtle border.
+
+**API shape expected:**
+
+```ts
+// POST /chat
+// Request
+{ message: string; conversation_id: string | null }
+
+// Response
 {
-  "message": "What are the hostel timings?",
-  "conversation_id": "optional-uuid"
+  reply: string;
+  conversation_id: string;
+  sources: { document: string; section: string; chunk_id: string }[];
 }
 ```
 
 ---
 
-## 🔒 Environment Variables
+## Author
 
-| Variable                   | Description                    |
-|---------------------------|--------------------------------|
-| `NEXT_PUBLIC_API_BASE_URL` | FastAPI backend base URL       |
-
----
-
-
-## 📄 License
-
-MIT License
-
----
-
-## 👨‍💻 Author
-
-**Aditya**  
-Computer Science Engineer | Full-Stack Developer
-
----
-
-⭐ **If you find this project useful, give it a star!**
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
----
+**Aditya** — B.Tech Information Technology, VIT Vellore 2026
